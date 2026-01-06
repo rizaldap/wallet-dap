@@ -1,65 +1,268 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { formatRupiah } from '@/types';
+import {
+  TrendingUp,
+  TrendingDown,
+  Plus,
+  ArrowRight,
+  Wallet,
+  CreditCard,
+  Loader2
+} from 'lucide-react';
+import Link from 'next/link';
+import { useState, useMemo } from 'react';
+import TransactionModal from '@/components/transactions/TransactionModal';
+import { useWallets, useTransactions, useMonthlySummary, useCategorySummary, useCreditCards, useCategories } from '@/lib/hooks/useData';
+
+export default function DashboardPage() {
+  const [showAddTransaction, setShowAddTransaction] = useState(false);
+
+  const { wallets, totalBalance, loading: walletsLoading } = useWallets();
+  const { transactions, loading: txLoading } = useTransactions(5);
+  const { income, expense, loading: summaryLoading } = useMonthlySummary();
+  const { categories: categoryStats, loading: catLoading } = useCategorySummary();
+  const { totalBalance: creditBalance, totalLimit: creditLimit, loading: ccLoading } = useCreditCards();
+  const { categories } = useCategories();
+
+  // Create a lookup map for categories and wallets
+  const categoryMap = useMemo(() => {
+    const map = new Map<string, { name: string; icon: string }>();
+    categories.forEach(c => map.set(c.id, { name: c.name, icon: c.icon }));
+    return map;
+  }, [categories]);
+
+  const walletMap = useMemo(() => {
+    const map = new Map<string, string>();
+    wallets.forEach(w => map.set(w.id, w.name));
+    return map;
+  }, [wallets]);
+
+  const currentMonth = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+  const creditUsage = creditLimit > 0 ? (creditBalance / creditLimit) * 100 : 0;
+  const isLoading = walletsLoading || txLoading || summaryLoading;
+
+  const totalExpense = categoryStats.reduce((sum, c) => sum + c.total, 0);
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      <div className="dashboard-page">
+        <header className="page-header">
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-subtitle">{currentMonth}</p>
+          </div>
+        </header>
+
+        <div className="bento-grid">
+
+          {/* Balance Hero */}
+          <div className="bento-card bento-2x1 balance-hero">
+            <p className="label">Total Balance</p>
+            {walletsLoading ? (
+              <Loader2 className="animate-spin" style={{ marginTop: '12px' }} />
+            ) : (
+              <p className="amount">{formatRupiah(totalBalance)}</p>
+            )}
+            <div className="stats">
+              <div className="stat-item">
+                <div className="stat-icon income">
+                  <TrendingUp size={16} />
+                </div>
+                <div>
+                  <p className="stat-label">Income</p>
+                  <p className="stat-value text-green">
+                    {summaryLoading ? '...' : formatRupiah(income)}
+                  </p>
+                </div>
+              </div>
+              <div className="stat-item">
+                <div className="stat-icon expense">
+                  <TrendingDown size={16} />
+                </div>
+                <div>
+                  <p className="stat-label">Expense</p>
+                  <p className="stat-value text-red">
+                    {summaryLoading ? '...' : formatRupiah(expense)}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Savings */}
+          <div className="bento-card bento-1x1">
+            <div className="bento-card-header">
+              <span className="bento-card-title">Savings</span>
+              <Wallet size={16} className="text-muted" />
+            </div>
+            <div className="bento-card-content" style={{ justifyContent: 'flex-end' }}>
+              {summaryLoading ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <p className={`text-display ${income - expense >= 0 ? 'text-green' : 'text-red'}`}>
+                  {formatRupiah(income - expense)}
+                </p>
+              )}
+              <p className="text-small" style={{ marginTop: '8px' }}>this month</p>
+            </div>
+          </div>
+
+          {/* Credit Usage */}
+          <div className="bento-card bento-1x1">
+            <div className="bento-card-header">
+              <span className="bento-card-title">Credit</span>
+              <CreditCard size={16} className="text-muted" />
+            </div>
+            <div className="bento-card-content" style={{ justifyContent: 'flex-end' }}>
+              {ccLoading ? (
+                <Loader2 className="animate-spin" />
+              ) : creditLimit > 0 ? (
+                <>
+                  <p className="text-display">{creditUsage.toFixed(0)}%</p>
+                  <div className="progress-bar" style={{ marginTop: '12px' }}>
+                    <div className="fill" style={{ width: `${creditUsage}%` }}></div>
+                  </div>
+                </>
+              ) : (
+                <p className="text-muted">No cards</p>
+              )}
+            </div>
+          </div>
+
+          {/* Wallet List */}
+          <div className="bento-card bento-2x2">
+            <div className="bento-card-header">
+              <span className="bento-card-title">Wallets</span>
+              <Link href="/wallets" className="section-link">
+                View All <ArrowRight size={14} />
+              </Link>
+            </div>
+            {walletsLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                <Loader2 className="animate-spin" />
+              </div>
+            ) : wallets.length === 0 ? (
+              <div className="empty-state">
+                <p className="desc">No wallets yet</p>
+              </div>
+            ) : (
+              <div className="wallet-list">
+                {wallets.slice(0, 4).map((wallet) => (
+                  <div key={wallet.id} className="wallet-item">
+                    <div className="wallet-icon">{wallet.icon || '💰'}</div>
+                    <div className="wallet-info">
+                      <p className="wallet-name">{wallet.name}</p>
+                      <p className="wallet-type">{wallet.type}</p>
+                    </div>
+                    <p className="wallet-balance">{formatRupiah(wallet.balance || 0)}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Spending Categories */}
+          <div className="bento-card bento-2x2">
+            <div className="bento-card-header">
+              <span className="bento-card-title">Spending</span>
+              <Link href="/analytics" className="section-link">
+                Details <ArrowRight size={14} />
+              </Link>
+            </div>
+            {catLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                <Loader2 className="animate-spin" />
+              </div>
+            ) : categoryStats.length === 0 ? (
+              <div className="empty-state">
+                <p className="desc">No spending data</p>
+              </div>
+            ) : (
+              <div className="bento-card-content">
+                {categoryStats.slice(0, 4).map((cat, idx) => (
+                  <div key={idx} className="category-item">
+                    <div className="category-header">
+                      <span className="category-name">
+                        <span>{cat.icon}</span>
+                        {cat.name}
+                      </span>
+                      <span className="category-amount">{formatRupiah(cat.total)}</span>
+                    </div>
+                    <div className="progress-bar">
+                      <div className="fill" style={{ width: `${(cat.total / totalExpense) * 100}%` }}></div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Transactions */}
+          <div className="bento-card bento-4x1">
+            <div className="bento-card-header">
+              <span className="bento-card-title">Recent Transactions</span>
+              <Link href="/transactions" className="section-link">
+                View All <ArrowRight size={14} />
+              </Link>
+            </div>
+            {txLoading ? (
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+                <Loader2 className="animate-spin" />
+              </div>
+            ) : transactions.length === 0 ? (
+              <div className="empty-state">
+                <p className="desc">No transactions yet. Add your first one!</p>
+              </div>
+            ) : (
+              <div className="transaction-list" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0 24px' }}>
+                {transactions.map((tx) => {
+                  const category = tx.categoryId ? categoryMap.get(tx.categoryId) : null;
+                  const walletName = tx.walletId ? walletMap.get(tx.walletId) : '';
+                  return (
+                    <div key={tx.id} className="transaction-item">
+                      <div className="transaction-icon">
+                        {category?.icon || '💸'}
+                      </div>
+                      <div className="transaction-info">
+                        <p className="transaction-desc">{tx.description}</p>
+                        <p className="transaction-category">
+                          {category?.name || 'Uncategorized'}{walletName ? ` · ${walletName}` : ''}
+                        </p>
+                      </div>
+                      <p className={`transaction-amount ${tx.type === 'income' ? 'income' : 'expense'}`}>
+                        {tx.type === 'income' ? '+' : '-'}{formatRupiah(tx.amount)}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+
+        <button
+          className="fab"
+          onClick={() => setShowAddTransaction(true)}
+          aria-label="Add Transaction"
+        >
+          <Plus size={24} />
+        </button>
+      </div>
+
+      {showAddTransaction && (
+        <TransactionModal onClose={() => setShowAddTransaction(false)} />
+      )}
+
+      <style jsx>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
+    </>
   );
 }
