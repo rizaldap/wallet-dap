@@ -1,15 +1,15 @@
 'use client';
 
-import { useSession } from 'next-auth/react';
-import { usePathname, redirect } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { Sidebar, BottomNav } from '@/components/layout/Navigation';
+import { useAuth } from '@/components/providers/SessionProvider';
 
 interface AppLayoutProps {
     children: React.ReactNode;
 }
 
 export function AppLayout({ children }: AppLayoutProps) {
-    const { data: session, status } = useSession();
+    const { user, loading } = useAuth();
     const pathname = usePathname();
 
     // Skip auth check for login page
@@ -18,7 +18,7 @@ export function AppLayout({ children }: AppLayoutProps) {
     }
 
     // Show loading while checking session
-    if (status === 'loading') {
+    if (loading) {
         return (
             <div className="loading-screen">
                 <div className="loading-spinner"></div>
@@ -27,9 +27,14 @@ export function AppLayout({ children }: AppLayoutProps) {
         );
     }
 
-    // Redirect to login if not authenticated
-    if (!session) {
-        redirect('/login');
+    // If not logged in, middleware will handle redirect
+    if (!user) {
+        return (
+            <div className="loading-screen">
+                <div className="loading-spinner"></div>
+                <p>Redirecting...</p>
+            </div>
+        );
     }
 
     return (

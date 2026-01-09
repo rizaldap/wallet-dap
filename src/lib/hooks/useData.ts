@@ -1,18 +1,18 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/components/providers/SessionProvider';
 import type { Wallet, CreditCard, Transaction, Category } from '@/types';
 
 // ============ WALLETS HOOK ============
 
 export function useWallets() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [wallets, setWallets] = useState<Wallet[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const isAuthenticated = !!session?.user;
+    const isAuthenticated = !!user;
 
     const refresh = useCallback(async () => {
         if (!isAuthenticated) return;
@@ -39,7 +39,7 @@ export function useWallets() {
         await fetch('/api/wallets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...wallet, userId: 'default' }),
+            body: JSON.stringify(wallet),
         });
         await refresh();
     };
@@ -57,12 +57,12 @@ export function useWallets() {
 // ============ CREDIT CARDS HOOK ============
 
 export function useCreditCards() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [cards, setCards] = useState<CreditCard[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const isAuthenticated = !!session?.user;
+    const isAuthenticated = !!user;
 
     const refresh = useCallback(async () => {
         if (!isAuthenticated) return;
@@ -89,7 +89,7 @@ export function useCreditCards() {
         await fetch('/api/credit-cards', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...card, userId: 'default' }),
+            body: JSON.stringify(card),
         });
         await refresh();
     };
@@ -108,12 +108,12 @@ export function useCreditCards() {
 // ============ TRANSACTIONS HOOK ============
 
 export function useTransactions(limit?: number) {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const isAuthenticated = !!session?.user;
+    const isAuthenticated = !!user;
 
     const refresh = useCallback(async () => {
         if (!isAuthenticated) return;
@@ -141,7 +141,7 @@ export function useTransactions(limit?: number) {
         await fetch('/api/transactions', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...tx, userId: 'default' }),
+            body: JSON.stringify(tx),
         });
         await refresh();
     };
@@ -157,12 +157,12 @@ export function useTransactions(limit?: number) {
 // ============ CATEGORIES HOOK ============
 
 export function useCategories() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
-    const isAuthenticated = !!session?.user;
+    const isAuthenticated = !!user;
 
     const refresh = useCallback(async () => {
         if (!isAuthenticated) return;
@@ -189,7 +189,7 @@ export function useCategories() {
         await fetch('/api/categories', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ ...cat, userId: 'default' }),
+            body: JSON.stringify(cat),
         });
         await refresh();
     };
@@ -203,11 +203,11 @@ export function useCategories() {
 // ============ SUMMARY HOOK ============
 
 export function useMonthlySummary() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [summary, setSummary] = useState({ income: 0, expense: 0, net: 0 });
     const [loading, setLoading] = useState(true);
 
-    const isAuthenticated = !!session?.user;
+    const isAuthenticated = !!user;
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -224,11 +224,11 @@ export function useMonthlySummary() {
 }
 
 export function useCategorySummary() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [categories, setCategories] = useState<{ name: string; icon: string; total: number }[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const isAuthenticated = !!session?.user;
+    const isAuthenticated = !!user;
 
     useEffect(() => {
         if (!isAuthenticated) return;
@@ -243,4 +243,3 @@ export function useCategorySummary() {
 
     return { categories, loading };
 }
-

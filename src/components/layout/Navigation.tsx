@@ -9,26 +9,33 @@ import {
     CreditCard,
     BarChart3,
     Settings,
-    LogOut
+    LogOut,
+    Target,
+    Coins,
+    Tag
 } from 'lucide-react';
-import { signOut } from 'next-auth/react';
+import { useAuth } from '@/components/providers/SessionProvider';
 
 const navItems = [
     { href: '/', label: 'Dashboard', icon: LayoutDashboard },
     { href: '/transactions', label: 'Transaksi', icon: Receipt },
     { href: '/wallets', label: 'Wallet', icon: Wallet },
     { href: '/credit-cards', label: 'Kartu Kredit', icon: CreditCard },
+    { href: '/categories', label: 'Kategori', icon: Tag },
+    { href: '/goals', label: 'Goals', icon: Target },
+    { href: '/gold', label: 'Gold', icon: Coins },
     { href: '/analytics', label: 'Analisis', icon: BarChart3 },
     { href: '/settings', label: 'Pengaturan', icon: Settings },
 ];
 
 export function Sidebar() {
     const pathname = usePathname();
+    const { signOut } = useAuth();
 
     return (
         <aside className="sidebar">
             <div className="sidebar-logo">
-                <span>💰</span>
+                <img src="/logo.png" alt="Wallet-Dap" style={{ width: '32px', height: '32px', borderRadius: '8px' }} />
                 <span>Wallet-Dap</span>
             </div>
 

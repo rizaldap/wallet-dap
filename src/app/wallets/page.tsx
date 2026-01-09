@@ -25,7 +25,7 @@ export default function WalletsPage() {
   const [formData, setFormData] = useState({
     name: '',
     type: 'bank' as 'bank' | 'e-wallet' | 'cash' | 'investment',
-    balance: 0,
+    balance: '',
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -45,11 +45,11 @@ export default function WalletsPage() {
         type: formData.type,
         icon: defaultIcons[formData.type] || '💰',
         color: '#ffffff',
-        initialBalance: formData.balance,
-        balance: formData.balance,
+        initialBalance: parseInt(formData.balance) || 0,
+        balance: parseInt(formData.balance) || 0,
       });
       setShowModal(false);
-      setFormData({ name: '', type: 'bank', balance: 0 });
+      setFormData({ name: '', type: 'bank', balance: '' });
     } catch (err) {
       console.error(err);
     } finally {
@@ -176,12 +176,22 @@ export default function WalletsPage() {
               <div className="form-group">
                 <label className="form-label">Current Balance</label>
                 <input
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   className="form-input"
                   placeholder="0"
                   value={formData.balance}
-                  onChange={(e) => setFormData({ ...formData, balance: parseInt(e.target.value) || 0 })}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/[^0-9]/g, '');
+                    setFormData({ ...formData, balance: val });
+                  }}
                 />
+                {formData.balance && (
+                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                    {formatRupiah(parseInt(formData.balance) || 0)}
+                  </span>
+                )}
               </div>
               <button
                 type="submit"

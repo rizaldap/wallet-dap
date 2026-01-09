@@ -1,18 +1,24 @@
 import { NextResponse } from 'next/server';
-import * as sheetsData from '@/lib/sheets/data';
+import { getCurrentUser } from '@/lib/supabase/server';
+import * as supabaseData from '@/lib/supabase/data';
 
 export async function GET(request: Request) {
     try {
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
+
         const { searchParams } = new URL(request.url);
         const type = searchParams.get('type'); // 'monthly' or 'category'
         const year = parseInt(searchParams.get('year') || String(new Date().getFullYear()));
         const month = parseInt(searchParams.get('month') || String(new Date().getMonth() + 1));
 
         if (type === 'category') {
-            const summary = await sheetsData.getCategorySummary(year, month);
+            const summary = await supabaseData.getCategorySummary(user.id, year, month);
             return NextResponse.json({ data: summary });
         } else {
-            const summary = await sheetsData.getMonthlySummary(year, month);
+            const summary = await supabaseData.getMonthlySummary(user.id, year, month);
             return NextResponse.json({ data: summary });
         }
     } catch (error) {

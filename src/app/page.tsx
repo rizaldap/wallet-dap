@@ -8,12 +8,15 @@ import {
   ArrowRight,
   Wallet,
   CreditCard,
+  Target,
+  Coins,
   Loader2
 } from 'lucide-react';
 import Link from 'next/link';
 import { useState, useMemo } from 'react';
 import TransactionModal from '@/components/transactions/TransactionModal';
 import { useWallets, useTransactions, useMonthlySummary, useCategorySummary, useCreditCards, useCategories } from '@/lib/hooks/useData';
+import { useGoals, useGold } from '@/lib/hooks/useGoals';
 
 export default function DashboardPage() {
   const [showAddTransaction, setShowAddTransaction] = useState(false);
@@ -24,6 +27,8 @@ export default function DashboardPage() {
   const { categories: categoryStats, loading: catLoading } = useCategorySummary();
   const { totalBalance: creditBalance, totalLimit: creditLimit, loading: ccLoading } = useCreditCards();
   const { categories } = useCategories();
+  const { goals, loading: goalsLoading } = useGoals();
+  const { summary: goldSummary, transactions: goldTransactions, loading: goldLoading } = useGold();
 
   // Create a lookup map for categories and wallets
   const categoryMap = useMemo(() => {
@@ -40,9 +45,22 @@ export default function DashboardPage() {
 
   const currentMonth = new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
   const creditUsage = creditLimit > 0 ? (creditBalance / creditLimit) * 100 : 0;
-  const isLoading = walletsLoading || txLoading || summaryLoading;
 
   const totalExpense = categoryStats.reduce((sum, c) => sum + c.total, 0);
+
+  // Calculate total gold investment
+  const totalGoldInvested = goldTransactions
+    .filter(tx => tx.type === 'buy')
+    .reduce((sum, tx) => sum + tx.total_amount, 0);
+  const totalGoldSold = goldTransactions
+    .filter(tx => tx.type === 'sell')
+    .reduce((sum, tx) => sum + tx.total_amount, 0);
+
+  // Calculate total goals progress
+  const activeGoals = goals.filter(g => g.status === 'active');
+  const totalGoalsTarget = activeGoals.reduce((sum, g) => sum + g.target_amount, 0);
+  const totalGoalsCurrent = activeGoals.reduce((sum, g) => sum + g.current_amount, 0);
+  const goalsProgress = totalGoalsTarget > 0 ? (totalGoalsCurrent / totalGoalsTarget) * 100 : 0;
 
   return (
     <>
@@ -104,7 +122,7 @@ export default function DashboardPage() {
                   {formatRupiah(income - expense)}
                 </p>
               )}
-              <p className="text-small" style={{ marginTop: '8px' }}>this month</p>
+              <p className="text-small" style={{ marginTop: '8px' }}>bulan ini</p>
             </div>
           </div>
 
@@ -126,6 +144,55 @@ export default function DashboardPage() {
                 </>
               ) : (
                 <p className="text-muted">No cards</p>
+              )}
+            </div>
+          </div>
+
+          {/* Goals Summary */}
+          <div className="bento-card bento-1x1">
+            <div className="bento-card-header">
+              <span className="bento-card-title">Goals</span>
+              <Link href="/goals" className="section-link">
+                <Target size={14} />
+              </Link>
+            </div>
+            <div className="bento-card-content" style={{ justifyContent: 'flex-end' }}>
+              {goalsLoading ? (
+                <Loader2 className="animate-spin" />
+              ) : activeGoals.length > 0 ? (
+                <>
+                  <p className="text-display">{goalsProgress.toFixed(0)}%</p>
+                  <div className="progress-bar" style={{ marginTop: '12px' }}>
+                    <div className="fill success" style={{ width: `${goalsProgress}%` }}></div>
+                  </div>
+                  <p className="text-small" style={{ marginTop: '8px' }}>{activeGoals.length} goals aktif</p>
+                </>
+              ) : (
+                <p className="text-muted">Belum ada goal</p>
+              )}
+            </div>
+          </div>
+
+          {/* Gold Summary */}
+          <div className="bento-card bento-1x1">
+            <div className="bento-card-header">
+              <span className="bento-card-title">Gold</span>
+              <Link href="/gold" className="section-link">
+                <Coins size={14} />
+              </Link>
+            </div>
+            <div className="bento-card-content" style={{ justifyContent: 'flex-end' }}>
+              {goldLoading ? (
+                <Loader2 className="animate-spin" />
+              ) : goldSummary.totalGrams > 0 ? (
+                <>
+                  <p className="text-display text-gold">{goldSummary.totalGrams.toFixed(2)}g</p>
+                  <p className="text-small" style={{ marginTop: '8px' }}>
+                    {formatRupiah(totalGoldInvested - totalGoldSold)}
+                  </p>
+                </>
+              ) : (
+                <p className="text-muted">Belum ada emas</p>
               )}
             </div>
           </div>
@@ -261,6 +328,12 @@ export default function DashboardPage() {
         }
         .animate-spin {
           animation: spin 1s linear infinite;
+        }
+        .text-gold {
+          color: #f59e0b;
+        }
+        .progress-bar .fill.success {
+          background: var(--accent-green);
         }
       `}</style>
     </>

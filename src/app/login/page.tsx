@@ -1,20 +1,34 @@
 'use client';
 
-import { signIn, useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useState } from 'react';
+import { createClient } from '@/lib/supabase/browser';
 
 export default function LoginPage() {
-  const { data: session, status } = useSession();
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const supabase = createClient();
 
-  useEffect(() => {
-    if (session) {
-      router.push('/');
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/api/auth/callback`,
+        },
+      });
+      if (error) {
+        console.error('Login error:', error);
+        setLoading(false);
+      }
+    } catch (error) {
+      console.error('Login error:', error);
+      setLoading(false);
     }
-  }, [session, router]);
+  };
 
-  if (status === 'loading') {
+  if (loading) {
     return (
       <div style={{
         minHeight: '100vh',
@@ -97,7 +111,8 @@ export default function LoginPage() {
 
         {/* Google Button */}
         <button
-          onClick={() => signIn('google', { callbackUrl: '/' })}
+          onClick={handleGoogleLogin}
+          disabled={loading}
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -110,13 +125,16 @@ export default function LoginPage() {
             fontWeight: 500,
             fontSize: '15px',
             border: 'none',
-            cursor: 'pointer',
+            cursor: loading ? 'not-allowed' : 'pointer',
             width: '100%',
-            transition: 'all 0.2s ease'
+            transition: 'all 0.2s ease',
+            opacity: loading ? 0.7 : 1
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'translateY(-2px)';
-            e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
+            if (!loading) {
+              e.currentTarget.style.transform = 'translateY(-2px)';
+              e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)';
+            }
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'translateY(0)';
@@ -137,20 +155,8 @@ export default function LoginPage() {
           fontSize: '12px',
           color: '#666'
         }}>
-          Hanya akun yang terdaftar yang dapat mengakses
+          Login dengan akun Google untuk melanjutkan
         </p>
-
-        {/* Decorative elements */}
-        <div style={{
-          position: 'absolute',
-          top: '-100px',
-          right: '-100px',
-          width: '300px',
-          height: '300px',
-          borderRadius: '50%',
-          background: 'radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%)',
-          pointerEvents: 'none'
-        }} />
       </div>
     </div>
   );

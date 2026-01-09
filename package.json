@@ -9,7 +9,10 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.8.0",
     "@supabase/supabase-js": "^2.89.0",
+    "@types/canvas-confetti": "^1.9.0",
+    "canvas-confetti": "^1.9.4",
     "dexie": "^4.2.1",
     "dexie-react-hooks": "^4.2.0",
     "googleapis": "^169.0.0",
@@ -18,7 +21,8 @@
     "next-auth": "^4.24.13",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "recharts": "^3.6.0"
+    "recharts": "^3.6.0",
+    "tesseract.js": "^5.1.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

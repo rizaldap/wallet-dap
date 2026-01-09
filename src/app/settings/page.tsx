@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signOut, useSession } from 'next-auth/react';
 import { LogOut, User, Bell, Download, Trash2, Calendar, Loader2, Check } from 'lucide-react';
+import { useAuth } from '@/components/providers/SessionProvider';
 
 export default function SettingsPage() {
-  const { data: session } = useSession();
+  const { user, signOut } = useAuth();
   const [salaryDay, setSalaryDay] = useState(30);
   const [notifications, setNotifications] = useState(true);
   const [loading, setLoading] = useState(true);
@@ -90,12 +90,16 @@ export default function SettingsPage() {
       } else {
         setDeleteResult(`❌ ${data.error || 'Failed to delete'}`);
       }
-    } catch (err) {
+    } catch {
       setDeleteResult('❌ Failed to delete transactions');
     } finally {
       setDeleting(false);
       setShowDeleteConfirm(false);
     }
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
@@ -123,16 +127,16 @@ export default function SettingsPage() {
             <User size={16} className="text-muted" />
           </div>
           <div className="profile-info">
-            {session?.user?.image ? (
-              <img src={session.user.image} alt="Profile" className="profile-avatar" />
+            {user?.user_metadata?.avatar_url ? (
+              <img src={user.user_metadata.avatar_url as string} alt="Profile" className="profile-avatar" />
             ) : (
               <div className="profile-avatar-placeholder">
                 <User size={24} />
               </div>
             )}
             <div className="profile-details">
-              <p className="profile-name">{session?.user?.name || 'User'}</p>
-              <p className="profile-email">{session?.user?.email || 'Not logged in'}</p>
+              <p className="profile-name">{user?.user_metadata?.full_name as string || user?.user_metadata?.name as string || 'User'}</p>
+              <p className="profile-email">{user?.email || 'Not logged in'}</p>
             </div>
           </div>
         </div>
@@ -141,7 +145,7 @@ export default function SettingsPage() {
         <div className="bento-card bento-2x1" style={{ justifyContent: 'center', alignItems: 'center' }}>
           <button
             className="btn btn-secondary"
-            onClick={() => signOut({ callbackUrl: '/login' })}
+            onClick={handleSignOut}
             style={{ width: '100%' }}
           >
             <LogOut size={18} />
@@ -238,7 +242,7 @@ export default function SettingsPage() {
         {/* App Info */}
         <div className="bento-card bento-4x1" style={{ textAlign: 'center', justifyContent: 'center' }}>
           <p className="text-medium">💰 Wallet-Dap</p>
-          <p className="text-tiny" style={{ marginTop: '4px' }}>Version 1.0.0 · Made with ❤️ by Rizal · Powered by Google Sheets</p>
+          <p className="text-tiny" style={{ marginTop: '4px' }}>Version 2.0.0 · Made with ❤️ by Rizal · Powered by Supabase</p>
         </div>
 
       </div>
@@ -249,8 +253,7 @@ export default function SettingsPage() {
           <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px' }}>
             <h3 style={{ marginBottom: '12px' }}>⚠️ Delete All Transactions?</h3>
             <p className="text-small" style={{ marginBottom: '20px', color: 'var(--text-muted)' }}>
-              This will rename the current transaction sheet to &quot;DELETED_*&quot; and create a fresh new sheet.
-              Your old data will be preserved as backup.
+              This will delete all transactions from the database. This action cannot be undone.
             </p>
             <div style={{ display: 'flex', gap: '12px' }}>
               <button

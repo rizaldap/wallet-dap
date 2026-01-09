@@ -2,7 +2,8 @@
 
 import { formatRupiah } from '@/types';
 import { useMonthlySummary, useCategorySummary, useTransactions, useWallets } from '@/lib/hooks/useData';
-import { Loader2 } from 'lucide-react';
+import { useGoals, useGold } from '@/lib/hooks/useGoals';
+import { Loader2, Target, Coins } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -26,8 +27,22 @@ export default function AnalyticsPage() {
   const { categories: categoryData, loading: categoryLoading } = useCategorySummary();
   const { transactions, loading: txLoading } = useTransactions();
   const { wallets, totalBalance, loading: walletsLoading } = useWallets();
+  const { goals, loading: goalsLoading } = useGoals();
+  const { summary: goldSummary, transactions: goldTransactions, loading: goldLoading } = useGold();
 
-  const loading = summaryLoading || categoryLoading || txLoading || walletsLoading;
+  const loading = summaryLoading || categoryLoading || txLoading || walletsLoading || goalsLoading || goldLoading;
+
+  // Goals calculations
+  const activeGoals = goals.filter(g => g.status === 'active');
+  const completedGoals = goals.filter(g => g.status === 'completed');
+  const totalGoalsTarget = activeGoals.reduce((sum, g) => sum + g.target_amount, 0);
+  const totalGoalsCurrent = activeGoals.reduce((sum, g) => sum + g.current_amount, 0);
+  const goalsProgress = totalGoalsTarget > 0 ? (totalGoalsCurrent / totalGoalsTarget) * 100 : 0;
+
+  // Gold calculations
+  const totalGoldInvested = goldTransactions.filter(tx => tx.type === 'buy').reduce((sum, tx) => sum + tx.total_amount, 0);
+  const totalGoldSold = goldTransactions.filter(tx => tx.type === 'sell').reduce((sum, tx) => sum + tx.total_amount, 0);
+  const goldNetInvestment = totalGoldInvested - totalGoldSold;
 
   // Transform category data for chart
   const chartCategoryData = categoryData.map((cat, idx) => ({
@@ -181,6 +196,81 @@ export default function AnalyticsPage() {
                   <span className="text-small">{formatRupiah(wallet.balance)}</span>
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* Goals Progress */}
+        <div className="bento-card bento-2x1">
+          <div className="bento-card-header">
+            <span className="bento-card-title">Goals Progress</span>
+            <Target size={16} className="text-muted" />
+          </div>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <Loader2 size={24} className="animate-spin" />
+            </div>
+          ) : activeGoals.length === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <p className="text-muted">Belum ada goal aktif</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1 }}>
+              <div style={{ textAlign: 'center' }}>
+                <p className="text-display" style={{ color: '#22c55e' }}>{goalsProgress.toFixed(0)}%</p>
+                <p className="text-tiny">Progress</p>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span className="text-small">{formatRupiah(totalGoalsCurrent)}</span>
+                  <span className="text-small text-muted">{formatRupiah(totalGoalsTarget)}</span>
+                </div>
+                <div className="progress-bar">
+                  <div className="fill success" style={{ width: `${goalsProgress}%` }}></div>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px' }}>
+                  <span className="text-tiny">{activeGoals.length} aktif</span>
+                  <span className="text-tiny">{completedGoals.length} selesai</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Gold Investment */}
+        <div className="bento-card bento-2x1">
+          <div className="bento-card-header">
+            <span className="bento-card-title">Gold Investment</span>
+            <Coins size={16} style={{ color: '#f59e0b' }} />
+          </div>
+          {loading ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <Loader2 size={24} className="animate-spin" />
+            </div>
+          ) : goldSummary.totalGrams === 0 ? (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+              <p className="text-muted">Belum ada investasi emas</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flex: 1 }}>
+              <div style={{ textAlign: 'center' }}>
+                <p className="text-display" style={{ color: '#f59e0b' }}>{goldSummary.totalGrams.toFixed(2)}g</p>
+                <p className="text-tiny">Total Emas</p>
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span className="text-tiny">Total Beli</span>
+                  <span className="text-small">{formatRupiah(totalGoldInvested)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span className="text-tiny">Total Jual</span>
+                  <span className="text-small">{formatRupiah(totalGoldSold)}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
+                  <span className="text-tiny">Net Investment</span>
+                  <span className="text-small" style={{ color: '#f59e0b' }}>{formatRupiah(goldNetInvestment)}</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
