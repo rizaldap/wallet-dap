@@ -493,6 +493,18 @@ END;
 $$;
 
 -- ============================================
+-- ENABLE REALTIME (For collaborative features)
+-- ============================================
+
+-- Enable realtime for goals-related tables
+ALTER PUBLICATION supabase_realtime ADD TABLE goals;
+ALTER PUBLICATION supabase_realtime ADD TABLE goal_members;
+ALTER PUBLICATION supabase_realtime ADD TABLE goal_budgets;
+ALTER PUBLICATION supabase_realtime ADD TABLE goal_budget_payments;
+ALTER PUBLICATION supabase_realtime ADD TABLE goal_contributions;
+ALTER PUBLICATION supabase_realtime ADD TABLE goal_activities;
+
+-- ============================================
 -- DONE!
 -- ============================================
 SELECT 'Wallet-Dap schema initialized successfully!' AS status;

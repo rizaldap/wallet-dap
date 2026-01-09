@@ -98,6 +98,46 @@ export function useGoal(id: string) {
         refresh();
     }, [refresh]);
 
+    // Realtime subscription for live updates
+    useEffect(() => {
+        if (!isAuthenticated || !id) return;
+
+        // Dynamic import to avoid SSR issues
+        const setupRealtime = async () => {
+            const { createClient } = await import('@/lib/supabase/browser');
+            const supabase = createClient();
+
+            // Subscribe to goal changes
+            const goalChannel = supabase
+                .channel(`goal-${id}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'goals', filter: `id=eq.${id}` }, () => {
+                    refresh();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_contributions', filter: `goal_id=eq.${id}` }, () => {
+                    refresh();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_budgets', filter: `goal_id=eq.${id}` }, () => {
+                    refresh();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_budget_payments' }, () => {
+                    refresh();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_members', filter: `goal_id=eq.${id}` }, () => {
+                    refresh();
+                })
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(goalChannel);
+            };
+        };
+
+        const cleanup = setupRealtime();
+        return () => {
+            cleanup.then(fn => fn?.());
+        };
+    }, [isAuthenticated, id, refresh]);
+
     const update = async (updates: Partial<Goal>) => {
         if (!id) return;
         await fetch('/api/goals', {
@@ -137,6 +177,35 @@ export function useGoalBudgets(goalId: string) {
     useEffect(() => {
         refresh();
     }, [refresh]);
+
+    // Realtime subscription
+    useEffect(() => {
+        if (!isAuthenticated || !goalId) return;
+
+        const setupRealtime = async () => {
+            const { createClient } = await import('@/lib/supabase/browser');
+            const supabase = createClient();
+
+            const channel = supabase
+                .channel(`budgets-${goalId}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_budgets', filter: `goal_id=eq.${goalId}` }, () => {
+                    refresh();
+                })
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_budget_payments' }, () => {
+                    refresh();
+                })
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        };
+
+        const cleanup = setupRealtime();
+        return () => {
+            cleanup.then(fn => fn?.());
+        };
+    }, [isAuthenticated, goalId, refresh]);
 
     const create = async (budget: {
         name: string;
@@ -212,6 +281,32 @@ export function useGoalContributions(goalId: string) {
     useEffect(() => {
         refresh();
     }, [refresh]);
+
+    // Realtime subscription
+    useEffect(() => {
+        if (!isAuthenticated || !goalId) return;
+
+        const setupRealtime = async () => {
+            const { createClient } = await import('@/lib/supabase/browser');
+            const supabase = createClient();
+
+            const channel = supabase
+                .channel(`contributions-${goalId}`)
+                .on('postgres_changes', { event: '*', schema: 'public', table: 'goal_contributions', filter: `goal_id=eq.${goalId}` }, () => {
+                    refresh();
+                })
+                .subscribe();
+
+            return () => {
+                supabase.removeChannel(channel);
+            };
+        };
+
+        const cleanup = setupRealtime();
+        return () => {
+            cleanup.then(fn => fn?.());
+        };
+    }, [isAuthenticated, goalId, refresh]);
 
     const add = async (contribution: {
         amount: number;
