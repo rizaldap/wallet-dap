@@ -208,13 +208,36 @@ export default function SettingsPage() {
           </div>
           <div className="setting-row">
             <div className="setting-info">
-              <p className="setting-label">Download report</p>
-              <p className="setting-desc">HTML with charts & data</p>
+              <p className="setting-label">Download data</p>
+              <p className="setting-desc">HTML report or CSV</p>
             </div>
-            <button className="btn btn-secondary" onClick={handleExport} disabled={exporting}>
-              {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
-              {exporting ? 'Exporting...' : 'Export'}
-            </button>
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button className="btn btn-secondary" onClick={handleExport} disabled={exporting}>
+                {exporting ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+                HTML
+              </button>
+              <button className="btn btn-secondary" onClick={async () => {
+                setExporting(true);
+                try {
+                  const response = await fetch('/api/export?format=csv');
+                  const blob = await response.blob();
+                  const url = window.URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  a.download = `wallet-dap-transactions-${new Date().toISOString().split('T')[0]}.csv`;
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(url);
+                } catch (err) {
+                  console.error('Export failed:', err);
+                } finally {
+                  setExporting(false);
+                }
+              }} disabled={exporting}>
+                CSV
+              </button>
+            </div>
           </div>
         </div>
 
